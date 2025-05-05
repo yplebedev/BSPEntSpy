@@ -106,7 +106,7 @@ public class BSPEntspy {
 
 	static ImageIcon esIcon = new ImageIcon(BSPEntspy.class.getResource("/images/newicons/entspy.png"));
 	public static final String versionTag = "v1.414R-A";
-	public static final String entspyTitle = "BSPEntSpy " + versionTag;
+	public static final String entspyTitle = "BSPEntSpy - RTX Remix light fixer " + versionTag;
 	
 	private static void checkForUpdate() throws UnsupportedEncodingException, IOException {
 		if(!Preferences.userRoot().node(BSPEntspy.class.getName()).getBoolean("CheckForUpdates", true))
@@ -1789,11 +1789,12 @@ public class BSPEntspy {
 	}
 
 	public static void main(String[] args) throws Exception {
-		String help = "Options:\n-rename <oldmapname or \"\" to deduce> <new map name> <path to materials directory>\tRenames directories and updates VMT files in specified directory.\n-help\tDisplays help.";
+		String help = "Options:\n-rename <oldmapname or \"\" to deduce> <new map name> <path to materials directory>\tRenames directories and updates VMT files in specified directory.\n-fixlights\tShits under lights.\n-help\tDisplays help.";
 		
 		boolean runGui = true;
 		boolean failed = false;
 		boolean secret = true; //TODO
+		boolean fixLights = false;
 		for(int i = 0; i < args.length && !failed; ++i) {
 			if(args[i].equals("-rename")) {
 				if(i + 3 < args.length) {
@@ -1812,9 +1813,12 @@ public class BSPEntspy {
 				i += 3;
 			} else if(args[i].equals("-help")) {
 				System.out.println(help);
+			} else if(args[i].equals("-fixlights")) {
+				secret = true;
+				fixLights = true;
 			} else if(args[i].equals("-secret2131")){
 				secret = true;
-			}else {
+			} else {
 				failed = true;
 			}
 		}
@@ -1822,11 +1826,35 @@ public class BSPEntspy {
 		if(failed) {
 			System.out.println("Unknown command!\n" + help);
 		}
-		
+
+
+
 		if(runGui && !failed) {
 			UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
 			BSPEntspy inst = new BSPEntspy();
 			inst.exec(secret);
+			if (fixLights) {
+				inst.loadfile(null);
+				int index = inst.map.entities.size();
+				ArrayList<Entity> toClone = new ArrayList<>();
+				for (var entity : inst.map.entities) {
+					if (entity.classname.equals("light") || entity.classname.equals("light_spot")) {
+						toClone.add(entity);
+					}
+				}
+				for (var entity : toClone) {
+					Entity newE = entity.copy();
+					new CommandAddEntity().addEntity(newE, index);
+					inst.map.entities.add(index, newE);
+
+					newE.setClass("prop_dynamic");
+					newE.setKeyVal("model", "models/error.mdl");
+					newE.setKeyVal("hammerid", newE.getKeyValue("hammerid") + "42");
+					index++;
+				}
+				inst.savefile(false);
+				inst.frame.dispose();
+			}
 		}
 	}
 	
